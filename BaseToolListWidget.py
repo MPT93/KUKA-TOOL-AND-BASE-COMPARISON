@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QListWidget
+import re
 
 
 class BaseToolListWidget(QListWidget):
@@ -13,9 +14,11 @@ class BaseToolListWidget(QListWidget):
         self.tools_table = []
         for number in range(0, self.bases_and_tools_amount):
             self.bases_table.append(
-                Base(number=number + 1, name='"B{}"'.format(number+1)))
+                Base(number=number + 1, name='"B{}"'.format(number + 1))
+            )
             self.tools_table.append(
-                Tool(number=number + 1, name='"T{}"'.format(number+1)))
+                Tool(number=number + 1, name='"T{}"'.format(number + 1))
+            )
 
     def set_view(self):
 
@@ -26,7 +29,7 @@ class BaseToolListWidget(QListWidget):
             base_name = base.get_base_name_in_krl_syntax()
             base_typ = base.get_base_typ_in_krl_syntax()
 
-            item = f'{base_data}  {base_name}  {base_typ}'
+            item = f"{base_data}  {base_name}  {base_typ}"
             self.addItem(item)
 
         for tool in self.tools_table:
@@ -34,12 +37,78 @@ class BaseToolListWidget(QListWidget):
             tool_name = tool.get_tool_name_in_krl_syntax()
             tool_typ = tool.get_tool_typ_in_krl_syntax()
 
-            item = f'{tool_data}  {tool_name}  {tool_typ}'
+            item = f"{tool_data}  {tool_name}  {tool_typ}"
             self.addItem(item)
 
+    def get_coordinates(self, line):
+        return [
+            float(coordinate)
+            for coordinate in re.findall("[\d\.\d]+|[-\d\.\d]+", line)[1:]
+        ]
 
-class Base():
-    def __init__(self, number, name, X=0.0, Y=0.0, Z=0.0, A=0.0, B=0.0, C=0.0, typ="#NONE"):
+    def get_name_or_type_value(self, line):
+        return line.split("=")[1].replace("\n", "").replace("\r", "")
+
+    def update_data(self, line):
+
+        pattern = "^TOOL_DATA|^BASE_DATA|^TOOL_NAME|^BASE_NAME|^TOOL_TYPE|^BASE_TYPE"
+        result = re.search(pattern, line)
+
+        if result:
+            base_or_tool_number = int(re.findall("[\d\.\d]+", line)[0])
+            index = base_or_tool_number - 1
+            if base_or_tool_number != 0:
+                if result.string.startswith("BASE_DATA"):
+
+                    base_data = self.get_coordinates(line)
+
+                    (
+                        self.bases_table[index].X,
+                        self.bases_table[index].Y,
+                        self.bases_table[index].Z,
+                        self.bases_table[index].A,
+                        self.bases_table[index].B,
+                        self.bases_table[index].C,
+                    ) = base_data
+
+                if result.string.startswith("TOOL_DATA"):
+
+                    tool_data = self.get_coordinates(line)
+
+                    (
+                        self.tools_table[index].X,
+                        self.tools_table[index].Y,
+                        self.tools_table[index].Z,
+                        self.tools_table[index].A,
+                        self.tools_table[index].B,
+                        self.tools_table[index].C,
+                    ) = tool_data
+
+                if result.string.startswith("BASE_NAME"):
+                    base_name = self.get_name_or_type_value(line)
+                    self.bases_table[index].name = base_name
+
+                if result.string.startswith("TOOL_NAME"):
+                    tool_name = self.get_name_or_type_value(line)
+                    self.tools_table[index].name = tool_name
+
+                if result.string.startswith("BASE_TYPE"):
+                    base_typ = self.get_name_or_type_value(line)
+                    if base_typ == "":
+                        base_typ = "#BASE"
+                    self.bases_table[index].typ = base_typ
+
+                if result.string.startswith("TOOL_TYPE"):
+                    tool_typ = self.get_name_or_type_value(line)
+                    if tool_typ == "":
+                        tool_typ = "#BASE"
+                    self.tools_table[index].typ = tool_typ
+
+
+class Base:
+    def __init__(
+        self, number, name, X=0.0, Y=0.0, Z=0.0, A=0.0, B=0.0, C=0.0, typ="#NONE"
+    ):
         self.number = number
         self.name = name
         self.X = X
@@ -47,28 +116,30 @@ class Base():
         self.Z = Z
         self.A = A
         self.B = B
-        self. C = C
+        self.C = C
         self.typ = typ
 
     def get_base_data_in_krl_syntax(self):
-        return f'BASE_DATA[{self.number}]={{X {self.X},Y {self.Y},Z {self.Z},A {self.A},B {self.B},C {self.C}}}'
+        return f"BASE_DATA[{self.number}]={{X {self.X},Y {self.Y},Z {self.Z},A {self.A},B {self.B},C {self.C}}}"
 
     def get_base_name_in_krl_syntax(self):
-        return f'BASE_NAME[{self.number},]={self.name}'
+        return f"BASE_NAME[{self.number},]={self.name}"
 
     def get_base_typ_in_krl_syntax(self):
-        return f'BASE_TYPE[{self.number}]={self.typ}'
+        return f"BASE_TYPE[{self.number}]={self.typ}"
 
 
-class Tool (Base):
-    def __init__(self, number, name, X=0.0, Y=0.0, Z=0.0, A=0.0, B=0.0, C=0.0, typ="#NONE"):
+class Tool(Base):
+    def __init__(
+        self, number, name, X=0.0, Y=0.0, Z=0.0, A=0.0, B=0.0, C=0.0, typ="#NONE"
+    ):
         super().__init__(number, name, X, Y, Z, A, B, C, typ)
 
     def get_tool_data_in_krl_syntax(self):
         return f"TOOL_DATA[{self.number}]={{X {self.X},Y {self.Y},Z {self.Z},A {self.A},B {self.B},C {self.C}}}"
 
     def get_tool_name_in_krl_syntax(self):
-        return f'TOOL_NAME[{self.number},]={self.name}'
+        return f"TOOL_NAME[{self.number},]={self.name}"
 
     def get_tool_typ_in_krl_syntax(self):
-        return f'TOOL_TYPE[{self.number}]={self.typ}'
+        return f"TOOL_TYPE[{self.number}]={self.typ}"

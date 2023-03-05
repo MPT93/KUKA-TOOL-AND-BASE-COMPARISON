@@ -1,7 +1,9 @@
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QLabel, QHBoxLayout, QMessageBox
+from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, QHBoxLayout, QMessageBox, QFileDialog,
+                             QPushButton)
 from PyQt5.QtGui import QIcon
 from BaseToolListWidget import BaseToolListWidget
 from PyQt5.QtCore import Qt
+import zipfile
 
 
 class ComparerMainWindow(QMainWindow):
@@ -15,6 +17,14 @@ class ComparerMainWindow(QMainWindow):
         LeftLayout = QVBoxLayout()
         MiddleLayout = QVBoxLayout()
         RightLayout = QVBoxLayout()
+
+        OptionsLabel = QLabel("Options:")
+        OptionsLabel.setAlignment(Qt.AlignTop)
+        LeftLayout.addWidget(OptionsLabel)
+
+        LoadFromKukaBackupButton = QPushButton("Load from kuka backup")
+        LoadFromKukaBackupButton.clicked.connect(self.load_from_kuka_backup)
+        LeftLayout.addWidget(LoadFromKukaBackupButton)
 
         self.RobotToolsBasesList = BaseToolListWidget()
         self.OfflineToolsBasesList = BaseToolListWidget()
@@ -68,3 +78,31 @@ class ComparerMainWindow(QMainWindow):
 
         if event.key() == Qt.Key_Escape:
             self.close_comparer()
+
+    def show_critical_message_box(self, message_text="Not the right data format!", window_title="Error", button=QMessageBox.Cancel):
+
+        Reply = QMessageBox.critical(self, window_title, message_text, button)
+        return Reply
+
+    def load_from_kuka_backup(self):
+
+        try:
+            zip_file_name, _ = QFileDialog.getOpenFileName(
+                self, "Select Kuka .zip backup.", "", "*.zip")
+
+            if zip_file_name:
+                with zipfile.ZipFile(zip_file_name, "r") as zip:
+                    config_file_path = "KRC/R1/System/$config.dat"
+                    with zip.open(config_file_path) as config_file:
+                        config_file_content = config_file.readlines()
+
+                    for line in config_file_content:
+                        decoded_line = line.decode("UTF-8")
+                        self.RobotToolsBasesList.update_data(decoded_line)
+
+            self.RobotToolsBasesList.set_view()
+        except (IndexError, ValueError):
+            self.show_critical_message_box()
+        except KeyError:
+            message_text = "File KRC/R1/System/$config.dat does not exist!"
+            self.show_critical_message_box(message_text)
