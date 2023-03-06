@@ -40,6 +40,11 @@ class ComparerMainWindow(QMainWindow):
         LoadFromOlpFiles.clicked.connect(self.load_from_olp_files)
         LeftLayout.addWidget(LoadFromOlpFiles)
 
+        self.CompareButton = QPushButton("Compare")
+        self.CompareButton.clicked.connect(self.compare)
+        self.CompareButton.setCheckable(True)
+        LeftLayout.addWidget(self.CompareButton)
+
         self.RobotToolsBasesList = BaseToolListWidget()
         self.OfflineToolsBasesList = BaseToolListWidget()
 
@@ -106,6 +111,8 @@ class ComparerMainWindow(QMainWindow):
     def load_from_kuka_backup(self):
 
         try:
+            self.reset_comparing()
+
             zip_file_name, _ = QFileDialog.getOpenFileName(
                 self, "Select Kuka .zip backup.", "", "*.zip"
             )
@@ -130,6 +137,8 @@ class ComparerMainWindow(QMainWindow):
     def load_from_olp_files(self):
 
         try:
+            self.reset_comparing()
+
             caption = "Select folder with olp files."
             base_path = QFileDialog.getExistingDirectory(caption=caption)
 
@@ -155,3 +164,26 @@ class ComparerMainWindow(QMainWindow):
                 self.OfflineToolsBasesList.set_view()
         except (IndexError, ValueError):
             self.show_critical_message_box()
+
+    def compare(self):
+
+        if self.CompareButton.isChecked():
+            for index in range(self.RobotToolsBasesList.count()):
+                if (
+                    self.RobotToolsBasesList.item(index).text()
+                    != self.OfflineToolsBasesList.item(index).text()
+                ):
+                    self.RobotToolsBasesList.item(index).setBackground(Qt.red)
+                    self.OfflineToolsBasesList.item(index).setBackground(Qt.red)
+        else:
+            for index in range(self.RobotToolsBasesList.count()):
+                if (
+                    self.RobotToolsBasesList.item(index).text()
+                    != self.OfflineToolsBasesList.item(index).text()
+                ):
+                    self.RobotToolsBasesList.item(index).setBackground(Qt.white)
+                    self.OfflineToolsBasesList.item(index).setBackground(Qt.white)
+
+    def reset_comparing(self):
+        self.CompareButton.setChecked(False)
+        self.compare()
