@@ -104,6 +104,22 @@ class BaseToolListWidget(QListWidget):
                         tool_typ = "#BASE"
                     self.tools_table[index].typ = tool_typ
 
+    def check_if_not_default_frame_exists(self):
+
+        not_default_exists = False
+
+        for base in self.bases_table:
+            if not base.check_if_default():
+                not_default_exists = True
+                break
+
+        for tool in self.tools_table:
+            if not tool.check_if_default():
+                not_default_exists = True
+                break
+
+        return not_default_exists
+
 
 class Base:
     def __init__(
@@ -127,6 +143,19 @@ class Base:
 
     def get_base_typ_in_krl_syntax(self):
         return f"BASE_TYPE[{self.number}]={self.typ}"
+
+    def check_if_default(self):
+        if (
+            self.X != 0.0
+            or self.Y != 0.0
+            or self.Z != 0.0
+            or self.A != 0.0
+            or self.B != 0.0
+            or self.C != 0.0
+        ):
+            return False
+        else:
+            return True
 
 
 class Tool(Base):

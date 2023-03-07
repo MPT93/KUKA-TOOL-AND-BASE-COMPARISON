@@ -45,6 +45,10 @@ class ComparerMainWindow(QMainWindow):
         self.CompareButton.setCheckable(True)
         LeftLayout.addWidget(self.CompareButton)
 
+        SaveExistingOlpData = QPushButton("Save existing olp data")
+        SaveExistingOlpData.clicked.connect(self.save_existing_olp_bases_and_tools)
+        LeftLayout.addWidget(SaveExistingOlpData)
+
         self.RobotToolsBasesList = BaseToolListWidget()
         self.OfflineToolsBasesList = BaseToolListWidget()
 
@@ -187,3 +191,37 @@ class ComparerMainWindow(QMainWindow):
     def reset_comparing(self):
         self.CompareButton.setChecked(False)
         self.compare()
+
+    def save_existing_olp_bases_and_tools(self):
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save offline data under...", "", "*.txt"
+        )
+
+        if file_path:
+            if self.OfflineToolsBasesList.check_if_not_default_frame_exists():
+                with open(file_path, "w") as file:
+
+                    for base in self.OfflineToolsBasesList.bases_table:
+                        if not base.check_if_default():
+                            ComparerMainWindow.write_krl_frame_data_into_file(
+                                file,
+                                base.get_base_name_in_krl_syntax(),
+                                base.get_base_data_in_krl_syntax(),
+                                base.get_base_typ_in_krl_syntax(),
+                            )
+
+                    for tool in self.OfflineToolsBasesList.tools_table:
+                        if not tool.check_if_default():
+                            ComparerMainWindow.write_krl_frame_data_into_file(
+                                file,
+                                tool.get_tool_name_in_krl_syntax(),
+                                tool.get_tool_data_in_krl_syntax(),
+                                tool.get_tool_typ_in_krl_syntax(),
+                            )
+
+    @staticmethod
+    def write_krl_frame_data_into_file(file, frame_name, frame_data, frame_typ):
+        file.write("{}\n".format(frame_name))
+        file.write("{}\n".format(frame_data))
+        file.write("{}\n".format(frame_typ))
