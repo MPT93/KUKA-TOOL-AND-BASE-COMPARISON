@@ -157,6 +157,32 @@ class Base:
         else:
             return True
 
+    @staticmethod
+    def compare_coordinates(robot_frame, olp_frame):
+
+        delta_X = robot_frame.X - olp_frame.X
+        delta_Y = robot_frame.Y - olp_frame.Y
+        delta_Z = robot_frame.Z - olp_frame.Z
+        delta_A = robot_frame.A - olp_frame.A
+        delta_B = robot_frame.B - olp_frame.B
+        delta_C = robot_frame.C - olp_frame.C
+
+        if (
+            robot_frame.X == olp_frame.X
+            and robot_frame.Y
+            and olp_frame.Y
+            and robot_frame.Z == olp_frame.Z
+            and robot_frame.A == olp_frame.A
+            and robot_frame.B == olp_frame.B
+            and robot_frame.C == olp_frame.C
+        ):
+            frames_equal = True
+
+        else:
+            frames_equal = False
+
+        return frames_equal, (delta_X, delta_Y, delta_Z, delta_A, delta_B, delta_C)
+
 
 class Tool(Base):
     def __init__(

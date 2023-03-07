@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
 )
 from PyQt5.QtGui import QIcon
-from BaseToolListWidget import BaseToolListWidget
+from BaseToolListWidget import BaseToolListWidget, Base, Tool
 from PyQt5.QtCore import Qt
 import zipfile
 import os
@@ -48,6 +48,10 @@ class ComparerMainWindow(QMainWindow):
         SaveExistingOlpData = QPushButton("Save existing olp data")
         SaveExistingOlpData.clicked.connect(self.save_existing_olp_bases_and_tools)
         LeftLayout.addWidget(SaveExistingOlpData)
+
+        CreateReport = QPushButton("Create report")
+        CreateReport.clicked.connect(self.create_report)
+        LeftLayout.addWidget(CreateReport)
 
         self.RobotToolsBasesList = BaseToolListWidget()
         self.OfflineToolsBasesList = BaseToolListWidget()
@@ -219,6 +223,55 @@ class ComparerMainWindow(QMainWindow):
                                 tool.get_tool_data_in_krl_syntax(),
                                 tool.get_tool_typ_in_krl_syntax(),
                             )
+
+    def create_report(self):
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save report under...", "", "*.txt"
+        )
+
+        if file_path:
+            if (
+                self.OfflineToolsBasesList.check_if_not_default_frame_exists()
+                or self.RobotToolsBasesList.check_if_not_default_frame_exists()
+            ):
+                with open(file_path, "w") as file:
+                    file.write(
+                        "Differences between robot bases and olp bases (robot base - olp base):\n"
+                    )
+                    for robot_base, olp_base in zip(
+                        self.RobotToolsBasesList.bases_table,
+                        self.OfflineToolsBasesList.bases_table,
+                    ):
+                        if (
+                            not robot_base.check_if_default()
+                            or not olp_base.check_if_default()
+                        ):
+                            frames_equal, delta = Base.compare_coordinates(
+                                robot_base, olp_base
+                            )
+                            if not frames_equal:
+                                file.write(f"Base[{robot_base.number}] differences in:\n")
+                                file.write(f"X={delta[0]}, Y={delta[1]}, Z={delta[2]}, A={delta[3]}, B={delta[4]}, C={delta[5]}\n")
+
+                    file.write(
+                        "\nDifferences between robot tools and olp tools (robot tool - olp tool):\n"
+                    )
+
+                    for robot_tool, olp_tool in zip(
+                        self.RobotToolsBasesList.tools_table,
+                        self.OfflineToolsBasesList.tools_table,
+                    ):
+                        if (
+                            not robot_tool.check_if_default()
+                            or not olp_tool.check_if_default()
+                        ):
+                            frames_equal, delta = Tool.compare_coordinates(
+                                robot_tool, olp_tool
+                            )
+                            if not frames_equal:
+                                file.write(f"Tool[{robot_tool.number}] differences in:\n")
+                                file.write(f"X={delta[0]}, Y={delta[1]}, Z={delta[2]}, A={delta[3]}, B={delta[4]}, C={delta[5]}\n")
 
     @staticmethod
     def write_krl_frame_data_into_file(file, frame_name, frame_data, frame_typ):
